@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  password  String
+  role      String
+  avatar    String   @default("👤")
+  level     Int      @default(1)
+  xp        Int      @default(0)
+  maxXp     Int      @default(100)
+  isAdmin   Boolean  @default(false)
+  isOnline  Boolean  @default(false)
+  status    String   @default("在线")
+  createdAt DateTime @default(now())
+
+  projects     Project[]
+  comments     Comment[]
+  replies      Reply[]
+  chatMessages ChatMessage[]
+  ratings      Rating[]
+  pointRecords PointRecord[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  progress    Int      @default(0)
+  status      String   @default("进行中")
+  priority    String   @default("中")
+  startDate   String
+  endDate     String
+  createdAt   DateTime @default(now())
+  creatorId   String
+  creator     User     @relation(fields: [creatorId], references: [id])
+
+  members    String   @default("")
+  roles      String   @default("[]")
+
+  milestones   Milestone[]
+  keyNotes     KeyNote[]
+  comments     Comment[]
+  chatMessages ChatMessage[]
+  ratings      Rating[]
+}
+
+model Milestone {
+  id        String  @id @default(cuid())
+  name      String
+  done      Boolean @default(false)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model KeyNote {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  rating    Int      @default(5)
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  replies Reply[]
+}
+
+model Reply {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  text      String
+  type      String   @default("user")
+  createdAt DateTime @default(now())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Rating {
+  id            String   @id @default(cuid())
+  quality       Int      @default(5)
+  progress      Int      @default(5)
+  teamwork      Int      @default(5)
+  communication Int      @default(5)
+  overall       Int      @default(5)
+  comment       String   @default("")
+  createdAt     DateTime @default(now())
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PointRecord {
+  id        String   @id @default(cuid())
+  action    String
+  points    Int
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model StrategyItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  progress    Int      @default(0)
+  category    String   @default("目标")
+  status      String   @default("进行中")
+  createdAt   DateTime @default(now())
+}
