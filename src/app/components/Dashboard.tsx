@@ -16,6 +16,7 @@ import VirtualOffice from './VirtualOffice'
 import PointsCenter from './PointsCenter'
 import Finance from './Finance'
 import TeamOnlineStatus from './TeamOnlineStatus'
+import PermissionManager from './PermissionManager'
 
 const NAV_ITEMS = [
   { id: 'office', label: '虚拟办公室', icon: Building2, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5' },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { id: 'analytics', label: '数据分析', icon: BarChart3, color: 'text-cyan-400', bg: 'from-cyan-500/20 to-cyan-600/5' },
   { id: 'finance', label: '财务系统', icon: Wallet, color: 'text-yellow-400', bg: 'from-yellow-500/20 to-yellow-600/5' },
   { id: 'points', label: '积分中心', icon: Trophy, color: 'text-rose-400', bg: 'from-rose-500/20 to-rose-600/5' },
+  { id: 'permissions', label: '权限管理', icon: Shield, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', adminOnly: true },
 ]
 
 const AVATAR_OPTIONS = ['👤', '👩', '👨', '🧑‍💼', '👩‍💻', '👨‍💻', '🧑‍🎨', '👩‍🔧', '🦊', '🐱', '🐶', '🦁']
@@ -111,12 +113,13 @@ export default function Dashboard({ user, accounts, onSwitchUser, onRefreshAccou
       case 'strategy': return <StrategyBoard />
       case 'projects': return <ProjectManager onAction={(action?: string) => {
         const pts = action === '新建项目' ? 30 : action === '发表项目留言' ? 8 : action === '添加关键记录' ? 5 : 20
-        addXp(pts, action || '完成里程碑')
-      }} />
+        addXp(pts, action || '项目操作')
+      }} user={user} />
       case 'team': return <TeamChat user={user} onAction={() => addXp(5, '团队协作消息')} />
       case 'analytics': return <Analytics />
       case 'finance': return <Finance />
       case 'points': return <PointsCenter totalPoints={level * 100 + xp} level={level} xp={xp} maxXp={user.maxXp} records={pointRecords} />
+      case 'permissions': return <PermissionManager user={user} users={accounts} />
       default: return <VirtualOffice user={user} accounts={accounts} />
     }
   }

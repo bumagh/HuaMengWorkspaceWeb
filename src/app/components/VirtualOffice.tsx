@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserProfile } from '../page'
 import TeamOnlineStatus from './TeamOnlineStatus'
 import { getWorkStatus, updateWorkStatus } from '@/lib/session'
@@ -85,6 +85,8 @@ export default function VirtualOffice({ user, accounts }: { user: UserProfile; a
   const [mounted, setMounted] = useState(false)
   const [workStatus, setWorkStatus] = useState(getWorkStatus())
   const [showStatusMenu, setShowStatusMenu] = useState<string | null>(null)
+  const statusButtonRef = useRef<HTMLButtonElement>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
   const [announcements, setAnnouncements] = useState(INIT_ANNOUNCEMENTS)
   const [showAnnoForm, setShowAnnoForm] = useState(false)
   const [annoText, setAnnoText] = useState('')
@@ -122,7 +124,21 @@ export default function VirtualOffice({ user, accounts }: { user: UserProfile; a
             {/* 工作状态切换器 */}
             <div className="relative">
               <button
-                onClick={() => setShowStatusMenu(showStatusMenu === 'status' ? null : 'status')}
+                ref={statusButtonRef}
+                onClick={() => {
+                  if (showStatusMenu === 'status') {
+                    setShowStatusMenu(null)
+                  } else {
+                    const rect = statusButtonRef.current?.getBoundingClientRect()
+                    if (rect) {
+                      setMenuPosition({
+                        top: rect.bottom + 8,
+                        right: window.innerWidth - rect.right
+                      })
+                    }
+                    setShowStatusMenu('status')
+                  }
+                }}
                 className={`text-sm font-medium px-4 py-2 rounded-lg transition-all cursor-pointer ${
                   STATUS_COLORS[WORK_STATUSES.find(s => s.id === workStatus)?.color || 'green'].bg
                 } ${
@@ -136,7 +152,17 @@ export default function VirtualOffice({ user, accounts }: { user: UserProfile; a
               
               {/* 状态下拉菜单 */}
               {showStatusMenu === 'status' && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-48 glass-card p-2 space-y-1 border border-slate-600/50 shadow-2xl">
+                <>
+                  {/* 背景遮罩 - 点击关闭 */}
+                  <div 
+                    className="fixed inset-0 z-[9998]"
+                    onClick={() => setShowStatusMenu(null)}
+                  />
+                  {/* 弹窗 */}
+                  <div 
+                    className="fixed z-[9999] w-48 glass-card p-2 space-y-1 border border-slate-600/50 shadow-2xl"
+                    style={{ top: `${menuPosition.top}px`, right: `${menuPosition.right}px` }}
+                  >
                   <div className="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider">切换工作状态</div>
                   {WORK_STATUSES.map(st => {
                     const sc = STATUS_COLORS[st.color]
@@ -159,7 +185,8 @@ export default function VirtualOffice({ user, accounts }: { user: UserProfile; a
                       </button>
                     )
                   })}
-                </div>
+                  </div>
+                </>
               )}
             </div>
             <div className="text-5xl animate-float">🏢</div>

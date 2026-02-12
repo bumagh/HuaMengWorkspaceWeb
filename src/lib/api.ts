@@ -86,4 +86,36 @@ export const api = {
     request('/strategy', { method: 'PUT', body: JSON.stringify(data) }),
   deleteStrategyItem: (id: string) =>
     request('/strategy', { method: 'DELETE', body: JSON.stringify({ id }) }),
+
+  // RBAC - Roles
+  getRoles: () => request('/rbac/roles'),
+  createRole: (data: { name: string; displayName: string; description?: string; permissionIds?: string[] }) =>
+    request('/rbac/roles', { method: 'POST', body: JSON.stringify(data) }),
+  updateRole: (data: { id: string; name?: string; displayName?: string; description?: string; permissionIds?: string[] }) =>
+    request('/rbac/roles', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteRole: (id: string) =>
+    request(`/rbac/roles?id=${id}`, { method: 'DELETE' }),
+
+  // RBAC - Permissions
+  getPermissions: () => request('/rbac/permissions'),
+  createPermission: (data: { name: string; displayName: string; description?: string; resource: string; action: string }) =>
+    request('/rbac/permissions', { method: 'POST', body: JSON.stringify(data) }),
+  deletePermission: (id: string) =>
+    request(`/rbac/permissions?id=${id}`, { method: 'DELETE' }),
+
+  // RBAC - User Roles
+  getUserRoles: (userId: string) => request(`/rbac/user-roles?userId=${userId}`),
+  assignRoleToUser: (data: { userId: string; roleId: string }) =>
+    request('/rbac/user-roles', { method: 'POST', body: JSON.stringify(data) }),
+  removeRoleFromUser: (userId: string, roleId: string) =>
+    request(`/rbac/user-roles?userId=${userId}&roleId=${roleId}`, { method: 'DELETE' }),
+
+  // RBAC - User Groups
+  getUserGroups: () => request('/rbac/groups'),
+  createUserGroup: (data: { name: string; displayName: string; description?: string; creatorId: string; memberIds?: string[]; roleIds?: string[] }) =>
+    request('/rbac/groups', { method: 'POST', body: JSON.stringify(data) }),
+  updateUserGroup: (data: { id: string; name?: string; displayName?: string; description?: string }) =>
+    request('/rbac/groups', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUserGroup: (id: string) =>
+    request(`/rbac/groups?id=${id}`, { method: 'DELETE' }),
 }
