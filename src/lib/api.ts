@@ -23,6 +23,9 @@ export const api = {
 
   // Users
   getUsers: () => request('/users'),
+  getOnlineUsers: () => request('/users/online'),
+  updateUserOnlineStatus: (data: { userId: string; isOnline: boolean; status?: string }) =>
+    request('/users/online', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (data: Record<string, unknown>) =>
     request('/users', { method: 'PUT', body: JSON.stringify(data) }),
 

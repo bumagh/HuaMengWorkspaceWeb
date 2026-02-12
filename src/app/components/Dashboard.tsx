@@ -15,6 +15,7 @@ import Analytics from './Analytics'
 import VirtualOffice from './VirtualOffice'
 import PointsCenter from './PointsCenter'
 import Finance from './Finance'
+import TeamOnlineStatus from './TeamOnlineStatus'
 
 const NAV_ITEMS = [
   { id: 'office', label: '虚拟办公室', icon: Building2, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5' },

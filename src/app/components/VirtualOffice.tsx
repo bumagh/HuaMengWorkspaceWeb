@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { UserProfile } from '../page'
+import TeamOnlineStatus from './TeamOnlineStatus'
+import { getWorkStatus, updateWorkStatus } from '@/lib/session'
 
 const OFFLINE_TIMES: Record<string, string> = {
   tangtang: '14:32',
@@ -69,12 +71,19 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 }
 
-export default function VirtualOffice({ user, accounts }: Props) {
+export default function VirtualOffice({ user, accounts }: { user: UserProfile; accounts: UserProfile[] }) {
+  const [onlineCount, setOnlineCount] = useState(1) // 至少当前用户在线
+  const [totalCount, setTotalCount] = useState(accounts.length)
+
+  useEffect(() => {
+    setTotalCount(accounts.length)
+  }, [accounts])
+
   const [onlineSeconds, setOnlineSeconds] = useState(0)
   const [loginTime, setLoginTime] = useState<Date | null>(null)
   const [now, setNow] = useState<Date | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [workStatus, setWorkStatus] = useState('working')
+  const [workStatus, setWorkStatus] = useState(getWorkStatus())
   const [showStatusMenu, setShowStatusMenu] = useState<string | null>(null)
   const [announcements, setAnnouncements] = useState(INIT_ANNOUNCEMENTS)
   const [showAnnoForm, setShowAnnoForm] = useState(false)
@@ -93,8 +102,10 @@ export default function VirtualOffice({ user, accounts }: Props) {
     return () => clearInterval(timer)
   }, [])
 
-  const onlineCount = accounts.filter(a => a.id === user.id).length
-  const totalCount = accounts.length
+  // 保存工作状态到localStorage
+  useEffect(() => {
+    updateWorkStatus(workStatus)
+  }, [workStatus])
 
   return (
     <div className="space-y-6">
@@ -107,7 +118,52 @@ export default function VirtualOffice({ user, accounts }: Props) {
             </h3>
             <p className="text-slate-400">欢迎回到华梦虚拟办公室，今天也是充满活力的一天</p>
           </div>
-          <div className="text-5xl animate-float">🏢</div>
+          <div className="flex items-center gap-4">
+            {/* 工作状态切换器 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowStatusMenu(showStatusMenu === 'status' ? null : 'status')}
+                className={`text-sm font-medium px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  STATUS_COLORS[WORK_STATUSES.find(s => s.id === workStatus)?.color || 'green'].bg
+                } ${
+                  STATUS_COLORS[WORK_STATUSES.find(s => s.id === workStatus)?.color || 'green'].text
+                } border ${
+                  STATUS_COLORS[WORK_STATUSES.find(s => s.id === workStatus)?.color || 'green'].border
+                }`}
+              >
+                {WORK_STATUSES.find(s => s.id === workStatus)?.emoji} {WORK_STATUSES.find(s => s.id === workStatus)?.label} ▾
+              </button>
+              
+              {/* 状态下拉菜单 */}
+              {showStatusMenu === 'status' && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-48 glass-card p-2 space-y-1 border border-slate-600/50 shadow-2xl">
+                  <div className="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider">切换工作状态</div>
+                  {WORK_STATUSES.map(st => {
+                    const sc = STATUS_COLORS[st.color]
+                    return (
+                      <button
+                        key={st.id}
+                        onClick={() => { 
+                          setWorkStatus(st.id)
+                          setShowStatusMenu(null)
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                          workStatus === st.id
+                            ? `${sc.bg} ${sc.text} border ${sc.border}`
+                            : 'text-slate-300 hover:bg-slate-700/60 border border-transparent'
+                        }`}
+                      >
+                        <span>{st.emoji}</span>
+                        <span className="text-xs">{st.label}</span>
+                        {workStatus === st.id && <span className="ml-auto w-2 h-2 rounded-full bg-current"></span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="text-5xl animate-float">🏢</div>
+          </div>
         </div>
       </div>
 
@@ -140,124 +196,13 @@ export default function VirtualOffice({ user, accounts }: Props) {
       </div>
 
       {/* Team Online Status */}
-      <div className="glass-card p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">🟢 团队在线状态</h3>
-        <div className="space-y-3">
-          {accounts.map(member => {
-            const isOnline = member.id === user.id
-            const offlineTime = OFFLINE_TIMES[member.id] || '12:00'
-            const currentStatus = isOnline
-              ? WORK_STATUSES.find(s => s.id === workStatus)!
-              : WORK_STATUSES.find(s => s.id === (DEFAULT_OFFLINE_STATUS[member.id] || 'working'))!
-            const statusColor = STATUS_COLORS[currentStatus.color]
-            return (
-              <div
-                key={member.id}
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                  isOnline
-                    ? `bg-green-500/10 border ${statusColor.border}`
-                    : 'bg-slate-800/40 border border-slate-700/30'
-                }`}
-              >
-                {/* Avatar */}
-                <div className="relative">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                    isOnline
-                      ? 'bg-gradient-to-br from-green-500 to-emerald-600'
-                      : 'bg-gradient-to-br from-slate-600 to-slate-700'
-                  }`}>
-                    {member.avatar}
-                  </div>
-                  <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-slate-900 ${
-                    isOnline ? 'bg-green-400 dot-pulse' : 'bg-slate-500'
-                  }`} />
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white text-sm">{member.name}</span>
-                    <span className="text-xs text-slate-500">{member.role}</span>
-                    {isOnline && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">
-                        在线
-                      </span>
-                    )}
-                    {!isOnline && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-600/40 text-slate-400">
-                        离线
-                      </span>
-                    )}
-                    {/* Work Status Badge */}
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColor.bg} ${statusColor.text} font-medium`}>
-                      {currentStatus.emoji} {currentStatus.label}
-                    </span>
-                  </div>
-                  {isOnline ? (
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xs text-green-400">
-                        🕐 登录时间：{loginTime ? formatTime(loginTime) : '--:--:--'}
-                      </span>
-                      <span className="text-xs text-green-300 font-mono">
-                        ⏱ 已在线：{formatDuration(onlineSeconds)}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xs text-slate-500">
-                        🕐 最后在线：今天 {offlineTime}
-                      </span>
-                      <span className="text-xs text-slate-600">
-                        离线时长：{now ? getOfflineDuration(offlineTime, now) : '--'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Switcher / Indicator */}
-                <div className="text-right relative">
-                  {isOnline ? (
-                    <button
-                      onClick={() => setShowStatusMenu(showStatusMenu === member.id ? null : member.id)}
-                      className={`text-xs ${statusColor.text} font-medium ${statusColor.bg} px-3 py-1.5 rounded-lg hover:opacity-80 transition-all cursor-pointer`}
-                    >
-                      {currentStatus.emoji} 切换状态 ▾
-                    </button>
-                  ) : (
-                    <div className="text-xs text-slate-500 bg-slate-800/60 px-3 py-1.5 rounded-lg">
-                      离线
-                    </div>
-                  )}
-                  {/* Status Dropdown */}
-                  {showStatusMenu === member.id && (
-                    <div className="absolute right-0 top-full mt-2 z-50 w-44 glass-card p-2 space-y-1 border border-slate-600/50 shadow-2xl">
-                      <div className="text-[10px] text-slate-500 px-2 py-1 uppercase tracking-wider">切换工作状态</div>
-                      {WORK_STATUSES.map(st => {
-                        const sc = STATUS_COLORS[st.color]
-                        return (
-                          <button
-                            key={st.id}
-                            onClick={() => { setWorkStatus(st.id); setShowStatusMenu(null) }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                              workStatus === st.id
-                                ? `${sc.bg} ${sc.text} border ${sc.border}`
-                                : 'text-slate-300 hover:bg-slate-700/60 border border-transparent'
-                            }`}
-                          >
-                            <span>{st.emoji}</span>
-                            <span className="text-xs">{st.label}</span>
-                            {workStatus === st.id && <span className="ml-auto w-2 h-2 rounded-full bg-current"></span>}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <TeamOnlineStatus 
+        currentUserId={user.id} 
+        onOnlineCountChange={(onlineCount, totalCount) => {
+          setOnlineCount(onlineCount)
+          setTotalCount(totalCount)
+        }}
+      />
 
       {/* Office Map */}
       <div>

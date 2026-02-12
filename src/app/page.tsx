@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Zap, Lock, User, Eye, EyeOff, UserPlus, LogIn, KeyRound, Briefcase, Info } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import { api } from '@/lib/api'
+import { getSession, saveSession, clearSession } from '@/lib/session'
 
 export type Role = string
 
@@ -45,9 +46,21 @@ export default function Home() {
 
   const AVATAR_OPTIONS = ['👤', '👩', '👨', '🧑‍💼', '👩‍💻', '👨‍💻', '🧑‍🎨', '👩‍🔧', '🦊', '🐱', '🐶', '🦁']
 
-  // 页面加载时从数据库获取用户列表
+  // 页面加载时从数据库获取用户列表并检查会话
   useEffect(() => {
     api.getUsers().then(setAccounts).catch(() => {})
+    
+    // 检查是否有保存的会话
+    const session = getSession()
+    if (session) {
+      setUser(session.user)
+      // 可选：自动更新在线状态
+      api.updateUserOnlineStatus({
+        userId: session.user.id,
+        isOnline: true,
+        status: '在线'
+      }).catch(() => {})
+    }
   }, [])
 
   const refreshAccounts = () => {
@@ -64,6 +77,8 @@ export default function Home() {
       const u = await api.login(loginName.trim(), loginPwd)
       setLoginError('')
       setUser(u)
+      // 保存会话
+      saveSession(u, 'working')
       refreshAccounts()
     } catch (e: any) {
       setLoginError(e.message || '登录失败')
@@ -107,6 +122,8 @@ export default function Home() {
     setUser(null)
     setLoginName('')
     setLoginPwd('')
+    // 清除会话
+    clearSession()
     refreshAccounts()
   }
 
